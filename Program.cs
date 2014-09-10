@@ -1,4 +1,5 @@
-﻿public static bool FieldInClass<T>(string DocumentField)
+﻿
+        public static bool FieldInClass<T>(string DocumentField)
         {
             Type myType = typeof(T);
             var result = myType.GetProperties().Where(p => (p.GetGetMethod() ?? p.GetSetMethod()).IsDefined(typeof(CompilerGeneratedAttribute), false)).Select(p => new { p.Name });
@@ -23,7 +24,16 @@
             }
             return false;
         }
+        
+        public static object defaultValueForClass(Type classType,string FieldName)
+        {
+            var ClassField = classType.GetField("<"+FieldName+">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
+            if(ClassField.FieldType.FullName=="System.String")
+                return string.Empty;
+            return null;
+        }
+        
 
         public static bool SyncClassWithCollection<T>(MongoCollection Collection)
         {
@@ -37,6 +47,8 @@
                 IEnumerable<string> myDocFields = i.Names;
                 foreach (var DocField in myDocFields.Where(f => f.ToLowerInvariant() != idFieldFromDb))
                 {
+                    IEnumerable<Type> subClassTypes = typeof(T).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(T)));
+                    
                     if (!FieldInClass<T>(DocField))
                     {
                         var delQuery = Query.Exists(DocField);
@@ -46,13 +58,16 @@
             }
 
             var result = typeof(T).GetProperties().Where(p => (p.GetGetMethod() ?? p.GetSetMethod()).IsDefined(typeof(CompilerGeneratedAttribute), false)).Select(p => new { p.Name });
-
+       
+            var tempClassVar = (T)Activator.CreateInstance(typeof(T), new object[] { });
+           
+            
             foreach (var i in query)
             {
                 IEnumerable<string> oneDocFields = i.Names;
                 foreach (var ClassField in result.Where(f => f.Name.ToLowerInvariant() != idFieldFromClass))
                 {
-                   
+                
                     AttributeCollection attributes = TypeDescriptor.GetProperties(typeof(T))[ClassField.Name].Attributes;
 
                     DefaultValueAttribute myAttribute = (DefaultValueAttribute)attributes[typeof(DefaultValueAttribute)];
@@ -65,7 +80,15 @@
                         }
                         else
                         {
-                            Collection.Update(addQuery, Update.Set(ClassField.Name, BsonNull.Value), UpdateFlags.Multi);
+                            if (tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar) == null)
+                            {
+                                Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(defaultValueForClass(typeof(T), ClassField.Name))), UpdateFlags.Multi);
+                                
+                            }
+                            else
+                            {
+                                Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar))), UpdateFlags.Multi);
+                            }
                         }
                     }
                 }
