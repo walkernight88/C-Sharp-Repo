@@ -1,98 +1,113 @@
-﻿
-        public static bool FieldInClass<T>(string DocumentField)
+﻿static class CollectionSyncer
         {
-            Type myType = typeof(T);
-            var result = myType.GetProperties().Where(p => (p.GetGetMethod() ?? p.GetSetMethod()).IsDefined(typeof(CompilerGeneratedAttribute), false)).Select(p => new { p.Name });
-            foreach (var item in result)
+            public static bool SyncSubClassWithDocument(Type Subclass)
             {
-                if (DocumentField == item.Name)
+                FieldInfo[] mySubClassFields = Subclass.GetFields(BindingFlags.Public |
+                                                  BindingFlags.NonPublic |
+                                                  BindingFlags.Instance);
+                foreach (var item in mySubClassFields)
                 {
-                    return true;
+                    Console.WriteLine(item.Name);
                 }
+                return true;
             }
-            return false;
-        }
 
-        public static bool FieldInDocument(string classField, IEnumerable<string> DocumentFields)
-        {
-            foreach(var docField in DocumentFields)
+
+            public static bool FieldInClass<T>(string DocumentField)
             {
-                if (classField == docField)
+                Type myType = typeof(T);
+                var result = myType.GetProperties().Where(p => (p.GetGetMethod() ?? p.GetSetMethod()).IsDefined(typeof(CompilerGeneratedAttribute), false)).Select(p => new { p.Name });
+                foreach (var item in result)
                 {
-                    return true;
-                }
-            }
-            return false;
-        }
-        
-        public static object defaultValueForClass(Type classType,string FieldName)
-        {
-            var ClassField = classType.GetField("<"+FieldName+">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-
-            if(ClassField.FieldType.FullName=="System.String")
-                return string.Empty;
-            return null;
-        }
-        
-
-        public static bool SyncClassWithCollection<T>(MongoCollection Collection)
-        {
-            var query = 
-                from e in Collection.AsQueryable<BsonDocument>()
-                select e;
-
-           
-            foreach (var i in query)
-            {
-                IEnumerable<string> myDocFields = i.Names;
-                foreach (var DocField in myDocFields.Where(f => f.ToLowerInvariant() != idFieldFromDb))
-                {
-                    IEnumerable<Type> subClassTypes = typeof(T).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(T)));
-                    
-                    if (!FieldInClass<T>(DocField))
+                    if (DocumentField == item.Name)
                     {
-                        var delQuery = Query.Exists(DocField);
-                        Collection.Update(delQuery, Update.Unset(DocField), UpdateFlags.Multi);
+                        return true;
                     }
                 }
+                return false;
             }
 
-            var result = typeof(T).GetProperties().Where(p => (p.GetGetMethod() ?? p.GetSetMethod()).IsDefined(typeof(CompilerGeneratedAttribute), false)).Select(p => new { p.Name });
-       
-            var tempClassVar = (T)Activator.CreateInstance(typeof(T), new object[] { });
-           
-            
-            foreach (var i in query)
+            public static bool FieldInDocument(string classField, IEnumerable<string> DocumentFields)
             {
-                IEnumerable<string> oneDocFields = i.Names;
-                foreach (var ClassField in result.Where(f => f.Name.ToLowerInvariant() != idFieldFromClass))
+                foreach (var docField in DocumentFields)
                 {
-                
-                    AttributeCollection attributes = TypeDescriptor.GetProperties(typeof(T))[ClassField.Name].Attributes;
-
-                    DefaultValueAttribute myAttribute = (DefaultValueAttribute)attributes[typeof(DefaultValueAttribute)];
-                    if (!FieldInDocument(ClassField.Name, oneDocFields))
+                    if (classField == docField)
                     {
-                        var addQuery = Query.NotExists(ClassField.Name);
-                        if (myAttribute != null)
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            public static object defaultValueForClass(Type classType, string FieldName)
+            {
+                var ClassField = classType.GetField("<" + FieldName + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (ClassField.FieldType.FullName == "System.String")
+                    return string.Empty;
+                return null;
+            }
+
+
+            public static bool SyncClassWithCollection<T>(MongoCollection Collection)
+            {
+                var query =
+                    from e in Collection.AsQueryable<BsonDocument>()
+                    select e;
+
+
+                foreach (var i in query)
+                {
+                    IEnumerable<string> myDocFields = i.Names;
+                    foreach (var DocField in myDocFields.Where(f => f.ToLowerInvariant() != idFieldFromDb))
+                    {
+                        IEnumerable<Type> subClassTypes = typeof(T).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(T)));
+
+                        if (!FieldInClass<T>(DocField))
                         {
-                            Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(myAttribute.Value)), UpdateFlags.Multi);
+                            var delQuery = Query.Exists(DocField);
+                            Collection.Update(delQuery, Update.Unset(DocField), UpdateFlags.Multi);
                         }
-                        else
+                    }
+                }
+
+                var result = typeof(T).GetProperties().Where(p => (p.GetGetMethod() ?? p.GetSetMethod()).IsDefined(typeof(CompilerGeneratedAttribute), false)).Select(p => new { p.Name });
+
+                var tempClassVar = (T)Activator.CreateInstance(typeof(T), new object[] { });
+
+
+                foreach (var i in query)
+                {
+                    IEnumerable<string> oneDocFields = i.Names;
+                    foreach (var ClassField in result.Where(f => f.Name.ToLowerInvariant() != idFieldFromClass))
+                    {
+
+                        AttributeCollection attributes = TypeDescriptor.GetProperties(typeof(T))[ClassField.Name].Attributes;
+
+                        DefaultValueAttribute myAttribute = (DefaultValueAttribute)attributes[typeof(DefaultValueAttribute)];
+                        if (!FieldInDocument(ClassField.Name, oneDocFields))
                         {
-                            if (tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar) == null)
+                            var addQuery = Query.NotExists(ClassField.Name);
+                            if (myAttribute != null)
                             {
-                                Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(defaultValueForClass(typeof(T), ClassField.Name))), UpdateFlags.Multi);
-                                
+                                Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(myAttribute.Value)), UpdateFlags.Multi);
                             }
                             else
                             {
-                                Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar))), UpdateFlags.Multi);
+                                if (tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar) == null)
+                                {
+                                    Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(defaultValueForClass(typeof(T), ClassField.Name))), UpdateFlags.Multi);
+
+                                }
+                                else
+                                {
+                                    Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar))), UpdateFlags.Multi);
+                                }
                             }
                         }
                     }
                 }
+
+                return true;
             }
-            
-            return true;
         }
