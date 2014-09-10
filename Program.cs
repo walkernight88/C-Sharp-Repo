@@ -12,6 +12,35 @@
                 return true;
             }
 
+            public static bool checkBsonDocument<T>(BsonDocument document, string documentName, MongoCollection Collection)
+            {
+                IEnumerable<Type> subClassTypes = typeof(T).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(T)));
+                foreach (var subClass in subClassTypes)
+                {
+
+                    if (typeof(T).GetField("<" + documentName + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FieldType.UnderlyingSystemType.ToString().Contains(subClass.Name))
+                    {
+                        Console.WriteLine("SubClass found");
+                        var result = subClass.GetProperties().Where(p => (p.GetGetMethod() ?? p.GetSetMethod()).IsDefined(typeof(CompilerGeneratedAttribute), false)).Select(p => new { p.Name });
+                        foreach (var subField in document.Names)
+                        {
+                            foreach (var item in result)
+                            {
+                                if (subField == item.Name)
+                                {
+
+                                    var delQuery = Query.Exists(subField);
+                                    Collection.Update(delQuery, Update.Unset(subField), UpdateFlags.Multi);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                return true;
+            }
+
 
             public static bool FieldInClass<T>(string DocumentField)
             {
@@ -42,9 +71,21 @@
             public static object defaultValueForClass(Type classType, string FieldName)
             {
                 var ClassField = classType.GetField("<" + FieldName + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-
+                Console.WriteLine(ClassField.FieldType.IsSerializable + " " + ClassField.FieldType.IsGenericType);
                 if (ClassField.FieldType.FullName == "System.String")
                     return string.Empty;
+                if (ClassField.FieldType.IsSerializable)
+                {
+                  
+                    Type result = ClassField.FieldType;
+                    var result2 = Activator.CreateInstance(result, new object[] { });
+                    var ArrayFields = result2.GetType().GetFields();
+                    foreach (var arrayField in ArrayFields)
+                    {
+                        //Treat each array type :D
+
+                    }
+                }
                 return null;
             }
 
@@ -55,19 +96,20 @@
                     from e in Collection.AsQueryable<BsonDocument>()
                     select e;
 
-
+                IEnumerable<Type> subClassTypes = typeof(T).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(T)));
+                var fields = typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+               
                 foreach (var i in query)
                 {
                     IEnumerable<string> myDocFields = i.Names;
                     foreach (var DocField in myDocFields.Where(f => f.ToLowerInvariant() != idFieldFromDb))
                     {
-                        IEnumerable<Type> subClassTypes = typeof(T).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(T)));
-
-                        if (!FieldInClass<T>(DocField))
-                        {
-                            var delQuery = Query.Exists(DocField);
-                            Collection.Update(delQuery, Update.Unset(DocField), UpdateFlags.Multi);
-                        }
+                            if (!FieldInClass<T>(DocField))
+                            {
+                                var delQuery = Query.Exists(DocField);
+                                Collection.Update(delQuery, Update.Unset(DocField), UpdateFlags.Multi);
+                            }
+                        
                     }
                 }
 
@@ -101,7 +143,7 @@
                                 }
                                 else
                                 {
-                                    Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar))), UpdateFlags.Multi);
+                                    Collection.Update(addQuery, Update.Set(ClassField.Name, tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar).ToBsonDocument()), UpdateFlags.Multi);
                                 }
                             }
                         }
