@@ -1,4 +1,4 @@
-﻿static class CollectionSyncer
+﻿ static class CollectionSyncer
         {
             public static bool SyncSubClassWithDocument(Type Subclass)
             {
@@ -41,11 +41,47 @@
                 return true;
             }
 
+            public static void DocumentInDocument(Type classType,BsonDocument document, string initialField,MongoCollection Collection)
+            {
+                var SubClassField = classType.GetField("<"+initialField+">k__BackingField",BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+                var SubClassNestedFields = SubClassField.FieldType.GetProperties().Where(p => (p.GetGetMethod() ?? p.GetSetMethod()).IsDefined(typeof(CompilerGeneratedAttribute), false)).Select(p => new { p.Name });
+                IEnumerable<string> myDocFields = document.Names;
+                foreach (var docField in myDocFields)
+                {   
+                    if(!FieldInSubClass(SubClassField.FieldType, docField))
+                    {
+
+                        var delQuery = Query.EQ(initialField+"."+docField,document.GetElement(docField).Value);
+                        var update = Update.Unset(initialField+"."+docField);
+                        Collection.Update(delQuery, update, UpdateFlags.Multi);
+                    }
+                    if (document.GetElement(docField).Value.GetType().Name == "BsonDocument") // Method used for structs if ever needed :D
+                    {
+                        DocumentInDocument(SubClassField.FieldType, document.GetElement(docField).Value.ToBsonDocument(), docField, Collection);
+                    }
+                } 
+               
+            }
+
 
             public static bool FieldInClass<T>(string DocumentField)
             {
                 Type myType = typeof(T);
                 var result = myType.GetProperties().Where(p => (p.GetGetMethod() ?? p.GetSetMethod()).IsDefined(typeof(CompilerGeneratedAttribute), false)).Select(p => new { p.Name });
+                foreach (var item in result)
+                {
+                    if (DocumentField == item.Name)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            public static bool FieldInSubClass(Type Subtype,string DocumentField)
+            {
+
+                var result = Subtype.GetProperties().Where(p => (p.GetGetMethod() ?? p.GetSetMethod()).IsDefined(typeof(CompilerGeneratedAttribute), false)).Select(p => new { p.Name });
                 foreach (var item in result)
                 {
                     if (DocumentField == item.Name)
@@ -96,20 +132,26 @@
                     from e in Collection.AsQueryable<BsonDocument>()
                     select e;
 
-                IEnumerable<Type> subClassTypes = typeof(T).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(T)));
-                var fields = typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-               
+                
                 foreach (var i in query)
                 {
+                    var t = i.BsonType;
+                    
+                        
+                    
                     IEnumerable<string> myDocFields = i.Names;
                     foreach (var DocField in myDocFields.Where(f => f.ToLowerInvariant() != idFieldFromDb))
                     {
-                            if (!FieldInClass<T>(DocField))
-                            {
-                                var delQuery = Query.Exists(DocField);
-                                Collection.Update(delQuery, Update.Unset(DocField), UpdateFlags.Multi);
-                            }
-                        
+
+                        if (!FieldInClass<T>(DocField))
+                        {
+                            var delQuery = Query.Exists(DocField);
+                            Collection.Update(delQuery, Update.Unset(DocField), UpdateFlags.Multi);
+                        }
+                        if (i.GetElement(DocField).Value.GetType().Name == "BsonDocument") // Method used for structs if ever needed :D
+                        {
+                            DocumentInDocument(typeof(T), i.GetElement(DocField).Value.ToBsonDocument(), DocField, Collection);
+                        }
                     }
                 }
 
