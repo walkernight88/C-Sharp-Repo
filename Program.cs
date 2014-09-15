@@ -108,14 +108,12 @@
                                 
                             
 
-                            //Console.WriteLine(addQuery);
                             if (myAttribute != null)
                             {
                                 Collection.Update(addQuery, Update.Set(initialField+"."+subClassField.Name, BsonValue.Create(myAttribute.Value)), UpdateFlags.Multi);
                             }
                             else
                             {
-                                //var tester = SubClassField.FieldType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                                 var tempObj = Activator.CreateInstance(SubClassField.FieldType, new object[] { });
                                 if (SubClassField.FieldType.GetField("<" + subClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempObj) == null)
                                 {
@@ -124,7 +122,6 @@
                                 }
                                 else
                                 {
-                                    //newDoc = SubClassField.FieldType.GetField("<" + subClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempObj).ToBsonDocument();
                                     BsonDocument newDoc = new BsonDocument{};
                                     Collection.Update(addQuery, Update.Set(initialField+"."+subClassField.Name, newDoc), UpdateFlags.Multi);
                                     isDocument = true;
@@ -142,7 +139,6 @@
                                 }
                                 else
                                 {
-                                    //var tester = SubClassField.FieldType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                                     var tempObj = Activator.CreateInstance(SubClassField.FieldType, new object[] { });
                                     if (SubClassField.FieldType.GetField("<" + subClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempObj) == null)
                                     {
@@ -151,7 +147,6 @@
                                     }
                                     else
                                     {
-                                        // var newDoc = SubClassField.FieldType.GetField("<" + subClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempObj).ToBsonDocument();
                                         BsonDocument newDoc = new BsonDocument{};
                                         Collection.Update(addQuery, Update.Set(queryString + "." + initialField + "." + subClassField.Name, newDoc), UpdateFlags.Multi);
                                         isDocument = true;
@@ -196,14 +191,12 @@
 
 
 
-                                //Console.WriteLine(addQuery);
-                                if (myAttribute != null)
+                               if (myAttribute != null)
                                 {
                                     Collection.Update(addQuery, Update.Set(initialField + "." + arrayIndex.ToString() + "." + subClassField.Name, BsonValue.Create(myAttribute.Value)), UpdateFlags.Multi);
                                 }
                                 else
                                 {
-                                    //var tester = SubClassField.FieldType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                                     var tempObj = Activator.CreateInstance(SubClassField.FieldType.GetGenericArguments()[0], new object[] { });
                                     if (SubClassField.FieldType.GetGenericArguments()[0].GetField("<" + subClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempObj) == null)
                                     {
@@ -212,7 +205,6 @@
                                     }
                                     else
                                     {
-                                        //newDoc = SubClassField.FieldType.GetField("<" + subClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempObj).ToBsonDocument();
                                         BsonDocument newDoc = new BsonDocument { };
                                         Collection.Update(addQuery, Update.Set(initialField + "." + arrayIndex.ToString() + "." + subClassField.Name, newDoc), UpdateFlags.Multi);
                                         isDocument = true;
@@ -230,7 +222,6 @@
                                 }
                                 else
                                 {
-                                    //var tester = SubClassField.FieldType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                                     var tempObj = Activator.CreateInstance(SubClassField.FieldType.GetGenericArguments()[0], new object[] { });
                                     if (SubClassField.FieldType.GetGenericArguments()[0].GetField("<" + subClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempObj) == null)
                                     {
@@ -239,7 +230,6 @@
                                     }
                                     else
                                     {
-                                        // var newDoc = SubClassField.FieldType.GetField("<" + subClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempObj).ToBsonDocument();
                                         BsonDocument newDoc = new BsonDocument { };
                                         Collection.Update(addQuery, Update.Set(queryString + "." + initialField + "." + arrayIndex.ToString() + "." + subClassField.Name, newDoc), UpdateFlags.Multi);
                                         isDocument = true;
@@ -306,7 +296,7 @@
             public static object defaultValueForClass(Type classType, string FieldName)
             {
                 var ClassField = classType.GetField("<" + FieldName + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-               // Console.WriteLine(ClassField.FieldType.IsSerializable + " " + ClassField.FieldType.IsGenericType);
+              
                 if (ClassField.FieldType.FullName == "System.String")
                     return string.Empty;
                 if (ClassField.FieldType.FullName == "System.Int32")
@@ -348,7 +338,7 @@
                         if (i.GetElement(DocField).Value.GetType().Name == "BsonArray")
                         {
                             var Array = i.GetElement(DocField).Value.AsBsonArray.ToList();
-                           // var cArray = Array.ToArray();
+                         
                             int arrayIndex = 0;
                             foreach (var item in Array)
                             {   
@@ -357,10 +347,10 @@
                                     DocumentInDocumentArray(typeof(T), item.AsBsonDocument, DocField, Collection, null, arrayIndex);
                                     arrayIndex++;
                                 }
-                               // Console.WriteLine(item.AsBsonValue.BsonType);
+                               
                             }
                         }
-                       // Console.WriteLine(i.GetElement(DocField).Value.GetType().Name);
+                   
                     }
                 }
 
@@ -372,7 +362,7 @@
                 foreach (var i in query)
                 {
                     IEnumerable<string> oneDocFields = i.Names;
-                    
+
                     foreach (var ClassField in result.Where(f => f.Name.ToLowerInvariant() != idFieldFromClass))
                     {
 
@@ -383,38 +373,71 @@
                         if (!FieldInDocument(ClassField.Name, oneDocFields))
                         {
                             var addQuery = Query.NotExists(ClassField.Name);
-                            if (myAttribute != null)
+                            if (tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FieldType.Name.Contains("List") == true)
                             {
-                                Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(myAttribute.Value)), UpdateFlags.Multi);
+                                if (myAttribute != null)
+                                {
+                                    Collection.Update(addQuery, Update.Set(ClassField.Name, new BsonArray { }), UpdateFlags.Multi);
+                                }
+                                else
+                                {
+                                    if (tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar) == null)
+                                    {
+                                        Collection.Update(addQuery, Update.Set(ClassField.Name, new BsonArray { }), UpdateFlags.Multi);
+
+                                    }
+                                    else
+                                    {
+                                        newDocument = tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar).ToBsonDocument();
+                                        Collection.Update(addQuery, Update.Set(ClassField.Name, newDocument), UpdateFlags.Multi);
+                                    }
+                                }
                             }
                             else
                             {
-                                if (tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar) == null)
+                                if (myAttribute != null)
                                 {
-                                    Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(defaultValueForClass(typeof(T), ClassField.Name))), UpdateFlags.Multi);
-
+                                    Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(myAttribute.Value)), UpdateFlags.Multi);
                                 }
                                 else
-                                {   newDocument =  tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar).ToBsonDocument();
-                                    Collection.Update(addQuery, Update.Set(ClassField.Name,newDocument), UpdateFlags.Multi);
+                                {
+                                    if (tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar) == null)
+                                    {
+                                        Collection.Update(addQuery, Update.Set(ClassField.Name, BsonValue.Create(defaultValueForClass(typeof(T), ClassField.Name))), UpdateFlags.Multi);
+
+                                    }
+                                    else
+                                    {
+                                        newDocument = tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tempClassVar).ToBsonDocument();
+                                        Collection.Update(addQuery, Update.Set(ClassField.Name, newDocument), UpdateFlags.Multi);
+                                    }
                                 }
                             }
                         }
+                    }
+                }
+                    var queryAfterEditing =
+                   from e in Collection.AsQueryable<BsonDocument>()
+                   select e;
+                    foreach (var i in queryAfterEditing)
+                    {
+                        foreach (var ClassField in result.Where(f => f.Name.ToLowerInvariant() != idFieldFromClass))
+                        {
                         var nestedTypes = typeof(T).GetNestedTypes();
-                        foreach(var nestedType in nestedTypes)
+                        foreach (var nestedType in nestedTypes)
                         {
 
-                            if (nestedType.Name == tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FieldType.Name && tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FieldType.Name.Contains("List")==false)
+                            if (nestedType.Name == tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FieldType.Name && tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FieldType.Name.Contains("List") == false)
                             {
                                 AddFieldsInSubdocuments(typeof(T), i.GetElement(ClassField.Name).ToBsonDocument(), ClassField.Name, Collection, null);
                             }
-                            
-                            if (tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FieldType.Name.Contains("List")==true)
+
+                            if (tempClassVar.GetType().GetField("<" + ClassField.Name + ">k__BackingField", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FieldType.Name.Contains("List") == true)
                             {
                                 if (i.GetElement(ClassField.Name).Value.GetType().Name == "BsonArray")
                                 {
                                     var Array = i.GetElement(ClassField.Name).Value.AsBsonArray.ToList();
-                                    // var cArray = Array.ToArray();
+                                    
                                     int arrayIndex = 0;
                                     foreach (var item in Array)
                                     {
@@ -423,13 +446,13 @@
                                             AddFieldsInSubdocumentsArray(typeof(T), i.GetElement(ClassField.Name).ToBsonDocument(), ClassField.Name, Collection, null, arrayIndex);
                                             arrayIndex++;
                                         }
-                                        // Console.WriteLine(item.AsBsonValue.BsonType);
+                                       
                                     }
                                 }
-                                //
+                           
                             }
                         }
-                        
+
 
                     }
                 }
