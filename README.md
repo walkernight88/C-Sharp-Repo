@@ -1,5 +1,5 @@
 # C-Sharp-Repo
-C# Class to MongoCollection syncronizer
+C# Class to MongoCollection synchronizer
     
 Used in C# applications to uniform a collection from MongoDB. It's useful when you want collection objects to be similar as structure. Empty fields on old objects are filled with default values. (eg. System.Int32, System.Bool)
 
